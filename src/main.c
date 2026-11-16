@@ -2,6 +2,9 @@
 #include "sev_seg_disp.h"
 #include "game_state.h"
 #include "pico/stdlib.h"
+#include <stdio.h>
+#include "eeprom.h"
+#include "uart.h"
 
 #ifndef AUDIO_TEST_MODE
 #define AUDIO_TEST_MODE 0
@@ -102,7 +105,7 @@ int main(void)
 }
 
 
-//Dont delete, using for testing
+//please dont delete, using for testing
 /*
 int main(void){
     //Test for seven-seg dipslay fuctionality
@@ -110,7 +113,7 @@ int main(void){
     // Configures our microcontroller to 
     // communicate over UART through the TX/RX pins
     stdio_init_all();
-    high_score = 342;
+    high_score = 784;
     game_score = 576;
     prepare_scores();
     display_init_spi();
@@ -126,5 +129,18 @@ int main(void){
     // }
 
     //initialize high score in main.c, but update it in the EEPROM I2C thing
+    //PRESS RESET ON MICROCONTROLLER TO SHOW THE PRINT
+    init_uart();
+     // You will construct your own main function.
+    init_i2c();
+
+    char hs_string[4] = {0}; //4 bc null terminator
+    snprintf(hs_string, 4, "%d", high_score);
+
+    eeprom_write(0x20, hs_string, 4);
+    char data[33] = {0}; //was getting junk, changed to 33 so that there was space for null terminator and initialized to 0 for gernal safety
+    eeprom_read(0x20, data, 32);
+
+    printf("Data read from EEPROM: %s\n", data);
 }
 */
