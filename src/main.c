@@ -1,4 +1,5 @@
 #include "audio.h"
+#include "sev_seg_disp.h"
 #include "game_state.h"
 #include "pico/stdlib.h"
 
@@ -8,11 +9,20 @@
 
 game_state_t game_state = GAME_WAITING;
 snake_direction_t game_requested_direction = DIRECTION_RIGHT;
-uint32_t game_score = 0;
+uint32_t game_score = 0; //current/updating score
+uint32_t high_score = 0; //added here for now, not sure if this is where it should stay yet
 uint16_t game_joystick_x_raw = 0;
 uint16_t game_joystick_y_raw = 0;
 bool game_food_audio_event = false;
 bool game_over_audio_event = false;
+
+//these are for SPI/DMA to control the 7-segment display (used in sev_seg_disp.c)
+const int SEG7_DMA_CHANNEL = 1;  // Set to the correct DMA channel for the 7-segment display for Step 4 autotest.
+
+const int SPI_7SEG_SCK = 18; // Replace with your SCK pin number for the 7-segment display
+const int SPI_7SEG_CSn = 17; // Replace with your CSn pin number for the 7-segment display
+const int SPI_7SEG_TX = 19; // Replace with your TX pin number for the 7-segment display
+//end of section
 
 #if AUDIO_TEST_MODE
 #define AUDIO_TEST_PAUSE_MS 1000u
@@ -90,3 +100,31 @@ int main(void)
         tight_loop_contents();
     }
 }
+
+
+//Dont delete, using for testing
+/*
+int main(void){
+    //Test for seven-seg dipslay fuctionality
+
+    // Configures our microcontroller to 
+    // communicate over UART through the TX/RX pins
+    stdio_init_all();
+    high_score = 342;
+    game_score = 576;
+    prepare_scores();
+    display_init_spi();
+    display_init_dma();
+
+    //if eat food
+        //game_score++;
+    //Want to code it so that the highscore only updates after death/completion of round
+    //if die/game over
+    //check condition 
+    // if (game_score >= high_score){
+    //     high_score = game_score
+    // }
+
+    //initialize high score in main.c, but update it in the EEPROM I2C thing
+}
+*/

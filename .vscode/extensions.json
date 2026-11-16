@@ -5,7 +5,21 @@
         "platformio.platformio-ide"
     ],
     "unwantedRecommendations": [
+        "AmazonWebServices.amazon-q-vscode",
+        "Codeium.CodeiumVS",
+        "Codium.codium",
+        "Continue.continue",
+        "GitHub.copilot",
+        "GitHub.copilot-chat",
+        "Google.geminicodeassist",
+        "RooVeterinaryInc.roo-cline",
+        "TabNine.tabnine-vscode",
+        "anthropic.claude-code",
+        "augment.vscode-augment",
         "ms-vscode.cpptools-extension-pack",
-        "pioarduino.pioarduino-ide"
+        "pioarduino.pioarduino-ide",
+        "saoudrizwan.claude-dev",
+        "sourcegraph.cody-ai",
+        "supermaven.supermaven"
     ]
 }
