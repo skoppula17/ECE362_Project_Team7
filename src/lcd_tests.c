@@ -909,10 +909,10 @@ void lcd_game_over_screen_test(void)
                   LCD_WHITE, 2);
 
     // Display restart instructions.
-    lcd_draw_text(12, 210, "MOVE JOYSTICK",
+    lcd_draw_text(12, 210, "PRESS RESET TO",
                   LCD_GREEN, 2);
 
-    lcd_draw_text(12, 235, "TO RESTART",
+    lcd_draw_text(12, 235, "RESTART GAME",
                   LCD_GREEN, 2);
 }
 
