@@ -56,15 +56,15 @@ void prepare_scores() {
 void display_init_spi() {
     // fill in  
     //initialize the three GPIO pins to be used by the SPI peripheral associated with them
-    gpio_set_function(17, GPIO_FUNC_SPI);
-    gpio_set_function(18, GPIO_FUNC_SPI);
-    gpio_set_function(19, GPIO_FUNC_SPI);
+    gpio_set_function(SPI_7SEG_CSn, GPIO_FUNC_SPI);
+    gpio_set_function(SPI_7SEG_SCK, GPIO_FUNC_SPI);
+    gpio_set_function(SPI_7SEG_TX, GPIO_FUNC_SPI);
 
     //initialize spi
-    spi_init(spi0, 125000); //baud rate = 125kHZ
+    spi_init(spi1, 125000); //baud rate = 125kHZ
 
     //set up spi format
-    spi_set_format(spi0, 16, 0, 0, SPI_MSB_FIRST);  
+    spi_set_format(spi1, 16, 0, 0, SPI_MSB_FIRST);  
 }
 
 void display_init_dma() {
@@ -74,7 +74,7 @@ void display_init_dma() {
 
     //
     dma_hw->ch[1].read_addr = &msg; //source address
-    dma_hw->ch[1].write_addr = &spi_get_hw(spi0)->dr; //destination address, spi0 data register is sspdr which corresponds to dr
+    dma_hw->ch[1].write_addr = &spi_get_hw(spi1)->dr; //destination address, spi1 data register is sspdr which corresponds to dr
 
     //count 8 (0x8 in hex), self trigger (shift a 1 to 28)
     dma_hw->ch[1].transfer_count = (0x8 << 0) | (1 << 28);

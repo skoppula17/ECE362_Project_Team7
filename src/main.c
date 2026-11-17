@@ -28,9 +28,9 @@ bool game_over_audio_event = false;
 //these are for SPI/DMA to control the 7-segment display (used in sev_seg_disp.c)
 const int SEG7_DMA_CHANNEL = 1;  // Set to the correct DMA channel for the 7-segment display for Step 4 autotest.
 
-const int SPI_7SEG_SCK = 18; // Replace with your SCK pin number for the 7-segment display
-const int SPI_7SEG_CSn = 17; // Replace with your CSn pin number for the 7-segment display
-const int SPI_7SEG_TX = 19; // Replace with your TX pin number for the 7-segment display
+const int SPI_7SEG_SCK = 10; // Replace with your SCK pin number for the 7-segment display
+const int SPI_7SEG_CSn = 13; // Replace with your CSn pin number for the 7-segment display
+const int SPI_7SEG_TX = 11; // Replace with your TX pin number for the 7-segment display
 //end of section
 
 #if AUDIO_TEST_MODE

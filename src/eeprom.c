@@ -5,8 +5,8 @@
 #include <string.h>
 #include "hardware/i2c.h"
 
-#define I2C_SDA 22 //GPIO pin I chose
-#define I2C_SCL 23 //GPIO pin I chose
+#define I2C_SDA 30 //GPIO pin I chose
+#define I2C_SCL 31 //GPIO pin I chose
 
 
 // 0x50 requires that A2-A0 pins are all 0. (wired to ground)
