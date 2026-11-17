@@ -8,6 +8,7 @@
 #include "lcd.h"
 #include "lcd_tests.h"
 #include "snake.h"
+#include <stdlib.h>
 
 #ifndef LCD_TEST_MODE
 #define LCD_TEST_MODE 1
@@ -52,6 +53,15 @@ int main(void)
     stdio_init_all();
     display_init_spi();
     display_init_dma();
+    init_uart();
+    init_i2c();
+    char data[33] = {0}; //was getting junk, changed to 33 so that there was space for null terminator and initialized to 0 for gernal safety
+    //eeprom_write(0x20, "000", 3); //clears EEPROM value
+    eeprom_read(0x20, data, 32);
+    if (data[0] >= '0' && data[0] <= '9') { //safety check for first time using an EEPROM
+        high_score = atoi(data);
+    }
+    printf("Data read from EEPROM: %s\n", data); //can delete this after testing finished
 
     #if LCD_TEST_MODE
         lcd_init();
@@ -87,25 +97,15 @@ int main(void)
         if ((game_state == GAME_OVER) && (game_score >= high_score))
         {
             high_score = game_score;
+            char hs_string[4] = {0}; //4 bc null terminator
+            snprintf(hs_string, 4, "%d", high_score);
+            eeprom_write(0x20, hs_string, 4);
         }
         // SPI1 DMA continuously refreshes the seven-segment display.
         // Only update its buffer here; display_print() writes to the LCD's SPI0.
         prepare_scores();
         tight_loop_contents();
     }
-
-    init_uart();
-     // You will construct your own main function.
-    init_i2c();
-
-    char hs_string[4] = {0}; //4 bc null terminator
-    snprintf(hs_string, 4, "%d", high_score);
-
-    eeprom_write(0x20, hs_string, 4);
-    char data[33] = {0}; //was getting junk, changed to 33 so that there was space for null terminator and initialized to 0 for gernal safety
-    eeprom_read(0x20, data, 32);
-
-    printf("Data read from EEPROM: %s\n", data);
 }
 
 
@@ -117,7 +117,6 @@ int main(void){
     // Configures our microcontroller to 
     // communicate over UART through the TX/RX pins
     stdio_init_all();
-    high_score = 784;
     game_score = 576;
     prepare_scores();
     display_init_spi();

@@ -38,7 +38,6 @@ void prepare_scores() {
     uint16_t idx = 3; //3 then 2 then 1
     for (int i = 0; i < 3; i++){
         temp = (high_score / (int)(1 * pow(10,i))) % 10; //using int division by orders of magnitude to get the value of the 1s place, then 10s place, then 100s place
-        //temp = (high_score >> (i * 4)) & 0xF;
         temp = get_sev_seg_val(temp);
         msg[idx] = (idx << 8) | temp;
         idx--;
