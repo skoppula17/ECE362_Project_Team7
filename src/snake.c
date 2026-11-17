@@ -2,7 +2,7 @@
 #include "snake.h"
 #include "audio.h"
 #include "pico/stdlib.h"
-#include <stdlib.h>
+#include "pico/rand.h"
 
 #define SNAKE_MOVE_INTERVAL_MS 250
 
@@ -39,21 +39,26 @@ static void snake_generate_food(void)
         return;
     }
 
-    bool valid_position;
+    // Choose from empty cells directly, so a nearly full board cannot get
+    // stuck repeatedly sampling occupied positions. Pico supplies the seed.
+    bool occupied[SNAKE_MAX_LENGTH] = {false};
+    for (int i = 0; i < snake_length; i++) {
+        occupied[snake_body[i].y * SNAKE_GRID_WIDTH + snake_body[i].x] = true;
+    }
 
-    do {
-        valid_position = true;
-
-        food.x = rand() % SNAKE_GRID_WIDTH;
-        food.y = rand() % SNAKE_GRID_HEIGHT;
-
-        for (int i = 0; i < snake_length; i++) {
-            if (positions_equal(food, snake_body[i])) {
-                valid_position = false;
-                break;
-            }
+    uint32_t empty_count = SNAKE_MAX_LENGTH - snake_length;
+    uint32_t selected = get_rand_32() % empty_count;
+    for (int cell = 0; cell < SNAKE_MAX_LENGTH; cell++) {
+        if (occupied[cell]) {
+            continue;
         }
-    } while (!valid_position);
+        if (selected == 0) {
+            food.x = cell % SNAKE_GRID_WIDTH;
+            food.y = cell / SNAKE_GRID_WIDTH;
+            return;
+        }
+        selected--;
+    }
 }
 
 void snake_init(void)
