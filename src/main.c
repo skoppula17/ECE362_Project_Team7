@@ -79,12 +79,25 @@ static void audio_test_update(void)
 }
 #endif
 
+// The scripted LCD demo uses snake.c, which raises these events on food
+// and collision. Consume each event once; game over takes priority.
+static void game_audio_update(void)
+{
+    if (game_over_audio_event) {
+        game_over_audio_event = false;
+        game_food_audio_event = false;
+        audio_play_game_over();
+    } else if (game_food_audio_event) {
+        game_food_audio_event = false;
+        audio_play_food();
+    }
+    audio_update();
+}
+
 int main(void)
 {
     audio_init();
     // TODO: Joystick initialization
-    // TODO: TFT initialization (
-    // TODO: PIO score display initialization
     stdio_init_all();
     display_init_spi();
     display_init_dma();
@@ -102,7 +115,7 @@ int main(void)
 
         audio_update();
 
-        #if LCD_TEST_MODE
+        #if LCD_TEST_MODE && !AUDIO_TEST_MODE
             // lcd_test_update();                // Static graphics
             // lcd_movement_test_update();       // Straight movement
             // lcd_gameplay_test_update();       // Food and wall collisions
@@ -113,32 +126,24 @@ int main(void)
             //lcd_snake_full_gameplay_test_update();
             //lcd_snake_final_collision_test_update();
             //lcd_start_screen_test_update();
+            // Default demo: one buzz per food, three buzzes on final collision.
+            // lcd_fill_rect() services audio while drawing the game-over screen.
             lcd_complete_game_test_update();
         #elif !AUDIO_TEST_MODE
             // The joystick driver controls GAME_WAITING/GAME_RUNNING and direction.
             snake_update();
         #endif
 
-        // Consume events after the game update, including the LCD gameplay demo.
-        // A terminal event takes priority over food collected in the same update.
-        if (game_over_audio_event) {
-            game_over_audio_event = false;
-            game_food_audio_event = false;
-            audio_play_game_over();
-        } else if (game_food_audio_event) {
-            game_food_audio_event = false;
-            audio_play_food();
-        }
-        audio_update();
+        // Play the events produced by this iteration of the scripted demo/game.
+        game_audio_update();
 
-        // TODO: TFT rendering
-        // TODO: PIO score display update
-        prepare_scores();
-        display_print();
-        if ((game_state == GAME_OVER) & (game_score >= high_score))
+        if ((game_state == GAME_OVER) && (game_score >= high_score))
         {
             high_score = game_score;
         }
+        // SPI1 DMA continuously refreshes the seven-segment display.
+        // Only update its buffer here; display_print() writes to the LCD's SPI0.
+        prepare_scores();
         tight_loop_contents();
     }
 
