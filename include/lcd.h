@@ -29,4 +29,7 @@ void lcd_fill_rect(int x, int y, int w, int h,
 // Draw one Snake grid cell (grid coordinates)
 void lcd_draw_cell(int x, int y, uint16_t color);
 
+void lcd_draw_text(int x, int y, const char *text,
+                   uint16_t color, int scale);
+
 #endif

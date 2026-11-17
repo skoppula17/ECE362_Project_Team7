@@ -6,6 +6,7 @@
 #include "eeprom.h"
 #include "uart.h"
 #include "lcd.h"
+#include "lcd_tests.h"
 
 #ifndef AUDIO_TEST_MODE
 #define AUDIO_TEST_MODE 0
@@ -77,34 +78,6 @@ static void audio_test_update(void)
 }
 #endif
 
-#if LCD_TEST_MODE
-
-static void lcd_test_update(void)
-{
-    static bool test_drawn = false;
-
-    if (!test_drawn) {
-        test_drawn = true;
-
-        // Black background
-        lcd_fill_screen(LCD_BLACK);
-
-        // Snake body
-        lcd_draw_cell(10, 10, LCD_GREEN);
-        lcd_draw_cell(11, 10, LCD_GREEN);
-        lcd_draw_cell(12, 10, LCD_GREEN);
-        lcd_draw_cell(13, 10, LCD_GREEN);
-
-        // Snake head
-        lcd_draw_cell(14, 10, LCD_YELLOW);
-
-        // Food
-        lcd_draw_cell(18, 15, LCD_RED);
-    }
-}
-
-#endif
-
 int main(void)
 {
     audio_init();
@@ -137,7 +110,17 @@ int main(void)
         audio_update();
 
         #if LCD_TEST_MODE
-            lcd_test_update();
+            // lcd_test_update();                // Static graphics
+            // lcd_movement_test_update();       // Straight movement
+            // lcd_gameplay_test_update();       // Food and wall collisions
+            // lcd_turning_test_update();        // Automatic turning
+            //lcd_self_collision_test_update();    // Self-collision
+            //lcd_snake_engine_test_update();  // Actual snake.c engine
+            //lcd_snake_food_test_update();  // Food and growth, hits wall
+            //lcd_snake_full_gameplay_test_update();
+            //lcd_snake_final_collision_test_update();
+            //lcd_start_screen_test_update();
+            lcd_complete_game_test_update();
         #endif
 
         // TODO: TFT rendering
