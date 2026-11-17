@@ -14,6 +14,7 @@ static snake_direction_t current_direction = DIRECTION_RIGHT;
 static absolute_time_t next_move;
 
 static bool game_initialized = false;
+static bool turn_pending;
 
 static bool directions_opposite(snake_direction_t a,
                                 snake_direction_t b)
@@ -68,6 +69,7 @@ void snake_init(void)
     game_score = 0;
     game_state = GAME_WAITING;
     current_direction = DIRECTION_RIGHT;
+    turn_pending = false;
     game_requested_direction = DIRECTION_RIGHT;
 
     game_food_audio_event = false;
@@ -92,7 +94,14 @@ void snake_start(void)
 
 void snake_set_direction(snake_direction_t direction)
 {
-    game_requested_direction = direction;
+    if (direction < DIRECTION_UP || direction > DIRECTION_RIGHT ||
+        directions_opposite(direction, current_direction) || turn_pending) {
+        return;
+    }
+    if (direction != current_direction) {
+        game_requested_direction = direction;
+        turn_pending = true;
+    }
 }
 
 void snake_update(void)
@@ -114,6 +123,10 @@ void snake_update(void)
                              current_direction)) {
         current_direction = game_requested_direction;
     }
+
+    // Consume one legal turn per movement; rejected input cannot linger.
+    game_requested_direction = current_direction;
+    turn_pending = false;
 
     snake_position_t head = snake_body[snake_length - 1];
     snake_position_t new_head = head;

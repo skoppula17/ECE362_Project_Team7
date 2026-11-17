@@ -9,6 +9,7 @@
 #include "lcd_tests.h"
 #include "snake.h"
 #include "game.h"
+#include "joystick.h"
 #include <stdlib.h>
 
 #ifndef LCD_TEST_MODE
@@ -66,9 +67,13 @@ int main(void)
 
     lcd_init();
 #if !LCD_TEST_MODE
+    joystick_init();
     game_init();
 #endif
 
+#if !LCD_TEST_MODE && JOYSTICK_DEBUG
+    absolute_time_t next_input_log = nil_time;
+#endif
     game_state_t previous_state = game_state;
     while (true) {
 
@@ -90,9 +95,18 @@ int main(void)
             // lcd_complete_game_test_update(); // score 3
             lcd_complete_wall_game_test_update(); // score 5
         #else
-            // The future joystick driver supplies these inputs each loop.
-            // Until then, centered stays false and the start screen waits.
-            game_update(game_joystick_centered, game_requested_direction);
+            // Raw input must not overwrite the engine's accepted turn.
+            snake_direction_t input_direction = game_requested_direction;
+            game_joystick_centered = joystick_read(&input_direction);
+            game_update(game_joystick_centered, input_direction);
+#if JOYSTICK_DEBUG
+            if (game_state != GAME_RUNNING && time_reached(next_input_log)) {
+                printf("Joystick X=%u Y=%u ready=%u centered=%u\n",
+                       (unsigned)game_joystick_x_raw, (unsigned)game_joystick_y_raw,
+                       (unsigned)joystick_is_ready(), (unsigned)game_joystick_centered);
+                next_input_log = make_timeout_time_ms(500);
+            }
+#endif
         #endif
 
         // Play the events produced by this iteration of the scripted demo/game.

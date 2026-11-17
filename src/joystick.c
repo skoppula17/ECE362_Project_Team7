@@ -1,74 +1,124 @@
-#include "pico/stdlib.h"
-#include "hardware/timer.h"
-#include "hardware/irq.h"
+#include "joystick.h"
 #include "hardware/adc.h"
-#include "hardware/dma.h"
-#include "stdio.h"
-#include "game_state.h"
+#include "pico/time.h"
+#include <stdlib.h>
+#if JOYSTICK_DEBUG
+#include <stdio.h>
+#endif
 
-#define XAXIS //do I even need this?
-#define YAXIS
-// int x_val;
-// int y_val;
-int adc_x;
-int adc_y;
+_Static_assert(JOYSTICK_X_PIN >= 40 && JOYSTICK_X_PIN <= 47,
+               "Proton joystick X must use GPIO40-47");
+_Static_assert(JOYSTICK_Y_PIN >= 40 && JOYSTICK_Y_PIN <= 47,
+               "Proton joystick Y must use GPIO40-47");
+_Static_assert(JOYSTICK_X_PIN != JOYSTICK_Y_PIN, "Use separate joystick pins");
 
-void init_adc() {
-    // fill in
-    adc_init();
-    adc_gpio_init(28); //whichever pin wired
-    adc_select_input(2);
-    adc_y = adc_get_selected_input();
-    adc_gpio_init(27);
-    adc_select_input(1);
-    adc_x = adc_get_selected_input();
-    //adc_irq_set_enabled(true);
-}
-/*
-    Setting up round robbin so that it takes multiple inputs. 
-    The problem is that this also needs to run continuously, hence why I'm doing this at the register level
-*/
-void init_adc_round_robin() {
-    // fill in
-    adc_irq_set_enabled(true);
-    //adc_set_temp_sensor_enabled(true);
-    init_adc();
-    //adc_set_round_robin();
+enum { INPUT_CENTER = 4 };
+static bool ready;
+static int center_x, center_y;
+static unsigned int calibration_count;
+static uint32_t sum_x, sum_y;
+static uint16_t min_x, max_x, min_y, max_y;
+static int accepted, candidate;
+static absolute_time_t next_sample, candidate_deadline;
 
-    uint mask = (0x6 << 16 || 0x6 << 12 || 1 << 3);
-    adc_hw->cs; //0011
-    // adc_select_input(5);
-    // adc_run(true);
-
-}
-
-/*
-    Needs to read the position of the snake while the game is running (probably uses snake_body)
-    Wondering how to differentiate between directions in the context of the range we have
-    Probably need to add an extra function to test all of this out
-    What I plan to have show up in main will be the initializaion above and the read_joystick function 
-    (while(true) loop will probably not be necessary, but I'll let you guys know when I actually get to that point)
-*/
-void read_joystick()
+void joystick_init(void)
 {
-    //init_adc();
-    
-    game_joystick_x_raw = adc_read; 
-    //will need to read adc_y and adc_x in continous loop, will need to change this because 
-    //this sets up free run mode, which only reads one input
-    game_joystick_y_raw = adc_read;
+    ready = false;
+    calibration_count = 0;
+    accepted = candidate = INPUT_CENTER;
+    next_sample = nil_time;
+    game_joystick_centered = false;
+    adc_init();
+    adc_gpio_init(JOYSTICK_X_PIN);
+    adc_gpio_init(JOYSTICK_Y_PIN);
+}
 
-    //init_adc_freerun();
-    //adc_set_round_robin;
-    //24 collumns 32 rows --> snake.h
-    while(GAME_RUNNING){
-        
+bool joystick_is_ready(void) { return ready; }
+
+static uint16_t read_axis(unsigned int channel)
+{
+    adc_select_input(channel);
+    (void)adc_read(); // Discard the first conversion after switching axes.
+    uint32_t sum = 0;
+    for (int i = 0; i < 4; i++) sum += adc_read();
+    return (uint16_t)(sum / 4);
+}
+
+static void calibrate(uint16_t x, uint16_t y)
+{
+    // Do not learn an end-stop or disconnected rail as the neutral position.
+    if (x < 512 || x > 3583 || y < 512 || y > 3583) {
+        calibration_count = 0;
+        return;
     }
+    if (calibration_count == 0) {
+        sum_x = sum_y = 0;
+        min_x = max_x = x;
+        min_y = max_y = y;
+    }
+    if (x < min_x) min_x = x;
+    if (x > max_x) max_x = x;
+    if (y < min_y) min_y = y;
+    if (y > max_y) max_y = y;
+    if (max_x - min_x > 100 || max_y - min_y > 100) {
+        calibration_count = 0;
+        return;
+    }
+    sum_x += x;
+    sum_y += y;
+    if (++calibration_count == JOYSTICK_CALIBRATION_SAMPLES) {
+        center_x = (int)(sum_x / calibration_count);
+        center_y = (int)(sum_y / calibration_count);
+        ready = true;
+#if JOYSTICK_DEBUG
+        printf("Joystick center X=%d Y=%d\n", center_x, center_y);
+#endif
+    }
+}
 
-    // int i = 0;
-    // for(;;) {
-    //     printf("ADC Result: %d     \r", adc_hw->result);
-    //     fflush(stdout);
-    //     sleep_ms(250);
-    // }
+static int classify(int x, int y)
+{
+    int ax = abs(x), ay = abs(y);
+    if (ax < JOYSTICK_RELEASE_DEADZONE && ay < JOYSTICK_RELEASE_DEADZONE)
+        return INPUT_CENTER;
+    // Keep the current axis while returning to center; reject diagonal jitter.
+    if (((accepted == DIRECTION_RIGHT && x > 0) ||
+         (accepted == DIRECTION_LEFT && x < 0)) &&
+        ax >= JOYSTICK_RELEASE_DEADZONE && ay < ax + JOYSTICK_AXIS_MARGIN)
+        return accepted;
+    if (((accepted == DIRECTION_DOWN && y > 0) ||
+         (accepted == DIRECTION_UP && y < 0)) &&
+        ay >= JOYSTICK_RELEASE_DEADZONE && ax < ay + JOYSTICK_AXIS_MARGIN)
+        return accepted;
+    if (ax < JOYSTICK_DEADZONE && ay < JOYSTICK_DEADZONE)
+        return INPUT_CENTER;
+    if (ax >= ay) return x > 0 ? DIRECTION_RIGHT : DIRECTION_LEFT;
+    return y > 0 ? DIRECTION_DOWN : DIRECTION_UP;
+}
+
+bool joystick_read(snake_direction_t *direction)
+{
+    if (time_reached(next_sample)) {
+        next_sample = make_timeout_time_ms(JOYSTICK_SAMPLE_MS);
+        game_joystick_x_raw = read_axis(JOYSTICK_X_PIN - 40);
+        game_joystick_y_raw = read_axis(JOYSTICK_Y_PIN - 40);
+        if (!ready) {
+            calibrate(game_joystick_x_raw, game_joystick_y_raw);
+        } else {
+            int x = (int)game_joystick_x_raw - center_x;
+            int y = (int)game_joystick_y_raw - center_y;
+            if (JOYSTICK_INVERT_X) x = -x;
+            if (JOYSTICK_INVERT_Y) y = -y;
+            int next = classify(x, y);
+            if (next != candidate) {
+                candidate = next;
+                candidate_deadline = make_timeout_time_ms(JOYSTICK_DIRECTION_STABLE_MS);
+            } else if (candidate != accepted && time_reached(candidate_deadline)) {
+                accepted = candidate;
+            }
+        }
+    }
+    if (!ready) return false;
+    if (accepted != INPUT_CENTER) *direction = (snake_direction_t)accepted;
+    return accepted == INPUT_CENTER;
 }

@@ -5,6 +5,9 @@
 #include "hardware/spi.h"
 
 #define LCD_SPI spi0
+#ifndef LCD_SPI_BAUD_HZ
+#define LCD_SPI_BAUD_HZ 8000000u
+#endif
 
 // TFT LCD pin assignments
 #define PIN_SCK   18
@@ -70,8 +73,8 @@ void lcd_init(void) {
     gpio_set_dir(PIN_DC, GPIO_OUT);
     gpio_put(PIN_DC, 1);
 
-    // Initialize SPI0 at 1 MHz
-    spi_init(LCD_SPI, 1000 * 1000);
+    // Faster clears reduce the delay when starting/restarting a round.
+    spi_init(LCD_SPI, LCD_SPI_BAUD_HZ);
 
     spi_set_format(LCD_SPI, 8,
                    SPI_CPOL_0,
@@ -181,8 +184,7 @@ void lcd_fill_rect(int x, int y, int w, int h,
                            count * 2);
 
         remaining -= count;
-        // A full-screen clear takes over a second at 1 MHz. Service the
-        // single-core audio sequencer between these roughly 1 ms chunks.
+        // Service audio between small transfer chunks, including screen clears.
         audio_update();
     }
 
