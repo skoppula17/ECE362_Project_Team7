@@ -8,10 +8,11 @@
 #include "lcd.h"
 #include "lcd_tests.h"
 #include "snake.h"
+#include "game.h"
 #include <stdlib.h>
 
 #ifndef LCD_TEST_MODE
-#define LCD_TEST_MODE 1
+#define LCD_TEST_MODE 0
 #endif
 
 game_state_t game_state = GAME_WAITING;
@@ -20,6 +21,7 @@ uint32_t game_score = 0; //current/updating score
 uint32_t high_score = 0; //added here for now, not sure if this is where it should stay yet
 uint16_t game_joystick_x_raw = 0;
 uint16_t game_joystick_y_raw = 0;
+bool game_joystick_centered = false;
 bool game_food_audio_event = false;
 bool game_over_audio_event = false;
 
@@ -31,7 +33,7 @@ const int SPI_7SEG_CSn = 13; // Replace with your CSn pin number for the 7-segme
 const int SPI_7SEG_TX = 11; // Replace with your TX pin number for the 7-segment display
 //end of section
 
-// The scripted LCD demo uses snake.c, which raises these events on food
+// Both live gameplay and the scripted demo raise these events on food
 // and collision. Consume each event once; game over takes priority.
 static void game_audio_update(void)
 {
@@ -49,7 +51,6 @@ static void game_audio_update(void)
 int main(void)
 {
     audio_init();
-    // TODO: Joystick initialization
     stdio_init_all();
     display_init_spi();
     display_init_dma();
@@ -63,12 +64,13 @@ int main(void)
     }
     printf("Data read from EEPROM: %s\n", data); //can delete this after testing finished
 
-    #if LCD_TEST_MODE
-        lcd_init();
-    #endif
+    lcd_init();
+#if !LCD_TEST_MODE
+    game_init();
+#endif
 
+    game_state_t previous_state = game_state;
     while (true) {
-        // TODO: Joystick update
 
         audio_update();
 
@@ -87,22 +89,25 @@ int main(void)
             // lcd_fill_rect() services audio while drawing the game-over screen.
             lcd_complete_game_test_update();
         #else
-            // The joystick driver controls GAME_WAITING/GAME_RUNNING and direction.
-            snake_update();
+            // The future joystick driver supplies these inputs each loop.
+            // Until then, centered stays false and the start screen waits.
+            game_update(game_joystick_centered, game_requested_direction);
         #endif
 
         // Play the events produced by this iteration of the scripted demo/game.
         game_audio_update();
 
-        if ((game_state == GAME_OVER) && (game_score >= high_score))
+        if (game_state == GAME_OVER && previous_state != GAME_OVER &&
+            game_score > high_score)
         {
             high_score = game_score;
             char hs_string[4] = {0}; //4 bc null terminator
-            snprintf(hs_string, 4, "%d", high_score);
+            snprintf(hs_string, sizeof(hs_string), "%lu", (unsigned long)high_score);
             eeprom_write(0x20, hs_string, 4);
         }
         // SPI1 DMA continuously refreshes the seven-segment display.
         // Only update its buffer here; display_print() writes to the LCD's SPI0.
+        previous_state = game_state;
         prepare_scores();
         tight_loop_contents();
     }

@@ -13,7 +13,6 @@ static snake_position_t food;
 static snake_direction_t current_direction = DIRECTION_RIGHT;
 static absolute_time_t next_move;
 
-static bool joystick_centered = true;
 static bool game_initialized = false;
 
 static bool directions_opposite(snake_direction_t a,
@@ -81,8 +80,14 @@ void snake_init(void)
 
     snake_generate_food();
 
-    joystick_centered = false;
+    next_move = nil_time;
     game_initialized = true;
+}
+
+void snake_start(void)
+{
+    game_state = GAME_RUNNING;
+    next_move = make_timeout_time_ms(SNAKE_MOVE_INTERVAL_MS);
 }
 
 void snake_set_direction(snake_direction_t direction)
@@ -96,8 +101,7 @@ void snake_update(void)
         snake_init();
     }
 
-    // Waiting and game-over transitions will be handled
-    // after integrating joystick-center detection.
+    // The live controller handles start and restart transitions.
     if (game_state != GAME_RUNNING) {
         return;
     }

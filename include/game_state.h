@@ -27,6 +27,10 @@ extern uint32_t game_score;
 extern uint16_t game_joystick_x_raw;
 extern uint16_t game_joystick_y_raw;
 
+// The input driver updates this and game_requested_direction in the main loop.
+// False until input is available, preventing an automatic start.
+extern bool game_joystick_centered;
+
 // Set once per event. The main loop consumes and clears these flags.
 extern bool game_food_audio_event;
 extern bool game_over_audio_event;

@@ -18,6 +18,9 @@ typedef struct {
 // Initialize or reset the game and stop old sounds. Call audio_init() first.
 void snake_init(void);
 
+// Start movement with a full interval before the first step.
+void snake_start(void);
+
 // Update movement, food, collisions, and score.
 void snake_update(void);
 
