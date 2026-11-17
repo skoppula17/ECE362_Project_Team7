@@ -84,7 +84,7 @@ void display_init_dma() {
     //coming from ctrl_trig_registers, pg 1128 of datasheet
     //data_size = 1; //need a 16 bit (half word which is 1) at bit 2 of ctrl_trig/al1_ctrl
     //Select SPI1 TX as the Data Request (DREQ) source
-    //treq_sel = 0x30; //need 24 (0x18) over bits 22-17
+    //treq_sel = 0x30; //need 26 (0x1A) over bits 22-17 (based on spi1 usage)
     //enable the DMA channel
     //en = 1; //need a 1 at bit 0
     //The read address should increment after every transfer.
@@ -94,7 +94,7 @@ void display_init_dma() {
     //ring_sel = 0; //no shift needed
     //ring_size = X; need X over bits 8-11
     
-    uint32_t temp = (1 << 2) | (0x18 << 17) | (1 << 4) | (4 << 8) | (1 << 0); //temp variable
+    uint32_t temp = (1 << 2) | (0x1A << 17) | (1 << 4) | (4 << 8) | (1 << 0); //temp variable
 
     (dma_hw->ch[1].ctrl_trig) |= temp; // or equals to be safe
 
