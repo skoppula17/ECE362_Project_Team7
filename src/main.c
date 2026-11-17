@@ -7,6 +7,7 @@
 #include "uart.h"
 #include "lcd.h"
 #include "lcd_tests.h"
+#include "snake.h"
 
 #ifndef AUDIO_TEST_MODE
 #define AUDIO_TEST_MODE 0
@@ -91,21 +92,10 @@ int main(void)
 
     while (true) {
         // TODO: Joystick update
-        // TODO: Game update: state, score, and one audio event per food/collision.
-        // Wall and self-collisions both set game_over_audio_event once.
 
 #if AUDIO_TEST_MODE
         audio_test_update();
 #endif
-
-        if (game_over_audio_event) {
-            game_over_audio_event = false;
-            game_food_audio_event = false;
-            audio_play_game_over();
-        } else if (game_food_audio_event) {
-            game_food_audio_event = false;
-            audio_play_food();
-        }
 
         audio_update();
 
@@ -121,7 +111,22 @@ int main(void)
             //lcd_snake_final_collision_test_update();
             //lcd_start_screen_test_update();
             lcd_complete_game_test_update();
+        #elif !AUDIO_TEST_MODE
+            // The joystick driver controls GAME_WAITING/GAME_RUNNING and direction.
+            snake_update();
         #endif
+
+        // Consume events after the game update, including the LCD gameplay demo.
+        // A terminal event takes priority over food collected in the same update.
+        if (game_over_audio_event) {
+            game_over_audio_event = false;
+            game_food_audio_event = false;
+            audio_play_game_over();
+        } else if (game_food_audio_event) {
+            game_food_audio_event = false;
+            audio_play_food();
+        }
+        audio_update();
 
         // TODO: TFT rendering
         // TODO: PIO score display update

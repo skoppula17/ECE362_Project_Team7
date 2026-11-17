@@ -1,5 +1,6 @@
 
 #include "snake.h"
+#include "audio.h"
 #include "pico/stdlib.h"
 #include <stdlib.h>
 
@@ -34,6 +35,7 @@ static void snake_generate_food(void)
 {
     if (snake_length >= SNAKE_MAX_LENGTH) {
         game_state = GAME_OVER;
+        game_over_audio_event = true;
         return;
     }
 
@@ -56,6 +58,8 @@ static void snake_generate_food(void)
 
 void snake_init(void)
 {
+    // audio_init() must run before initializing or restarting the game.
+    audio_stop();
     snake_length = 5;
     game_score = 0;
     game_state = GAME_WAITING;

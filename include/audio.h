@@ -12,7 +12,7 @@ void audio_play_food(void);
 // Three buzzes for either collision.
 void audio_play_game_over(void);
 
-// Call every loop
+// Call every loop and between long rendering/IO chunks, on the same core.
 void audio_update(void);
 bool audio_is_busy(void);
 

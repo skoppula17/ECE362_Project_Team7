@@ -1,5 +1,6 @@
 
 #include "lcd.h"
+#include "audio.h"
 #include "pico/stdlib.h"
 #include "hardware/spi.h"
 
@@ -180,6 +181,9 @@ void lcd_fill_rect(int x, int y, int w, int h,
                            count * 2);
 
         remaining -= count;
+        // A full-screen clear takes over a second at 1 MHz. Service the
+        // single-core audio sequencer between these roughly 1 ms chunks.
+        audio_update();
     }
 
     gpio_put(PIN_CS, 1);
