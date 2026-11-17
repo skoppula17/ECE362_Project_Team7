@@ -954,3 +954,180 @@ void lcd_complete_game_test_update(void)
             break;
     }
 }
+
+
+void lcd_snake_wall_collision_test_update(void)
+{
+    static bool initialized = false;
+    static int move_count = 0;
+
+    static snake_position_t previous_body[SNAKE_MAX_LENGTH];
+    static int previous_length = 0;
+    static snake_position_t previous_food;
+
+    if (!initialized) {
+        snake_init();
+        game_state = GAME_RUNNING;
+
+        move_count = 0;
+        snake_set_direction(DIRECTION_RIGHT);
+
+        // First food: movement 3.
+        snake_test_set_food(12, 10);
+
+        lcd_fill_screen(LCD_BLACK);
+
+        previous_length = snake_get_length();
+
+        for (int i = 0; i < previous_length; i++) {
+            previous_body[i] = snake_get_segment(i);
+
+            lcd_draw_cell(previous_body[i].x,
+                          previous_body[i].y,
+                          i == previous_length - 1 ?
+                          LCD_YELLOW : LCD_GREEN);
+        }
+
+        previous_food = snake_get_food();
+
+        lcd_draw_cell(previous_food.x,
+                      previous_food.y,
+                      LCD_RED);
+
+        initialized = true;
+        return;
+    }
+
+    if (game_state != GAME_RUNNING) {
+        return;
+    }
+
+    // Move right until reaching (23, 10).
+    // Then move down until hitting the bottom wall.
+    if (move_count < 14) {
+        snake_set_direction(DIRECTION_RIGHT);
+    } else {
+        snake_set_direction(DIRECTION_DOWN);
+    }
+
+    snake_position_t old_head =
+        snake_get_segment(snake_get_length() - 1);
+
+    uint32_t old_score = game_score;
+
+    snake_update();
+
+    // Stop after wall collision.
+    if (game_state == GAME_OVER) {
+        lcd_draw_cell(old_head.x,
+                      old_head.y,
+                      LCD_RED);
+        return;
+    }
+
+    snake_position_t new_head =
+        snake_get_segment(snake_get_length() - 1);
+
+    // Only count completed movements.
+    if (old_head.x == new_head.x &&
+        old_head.y == new_head.y) {
+        return;
+    }
+
+    move_count++;
+
+    // Place the next food along the route.
+    if (game_score > old_score) {
+        bool placed = true;
+
+        if (game_score == 1) {
+            placed = snake_test_set_food(15, 10);
+        } else if (game_score == 2) {
+            placed = snake_test_set_food(18, 10);
+        } else if (game_score == 3) {
+            placed = snake_test_set_food(21, 10);
+        } else if (game_score == 4) {
+            placed = snake_test_set_food(23, 13);
+        }
+
+        if (!placed) {
+            game_state = GAME_OVER;
+            game_over_audio_event = true;
+            return;
+        }
+    }
+
+    // Erase the previous snake.
+    for (int i = 0; i < previous_length; i++) {
+        lcd_draw_cell(previous_body[i].x,
+                      previous_body[i].y,
+                      LCD_BLACK);
+    }
+
+    // Erase the previous food.
+    lcd_draw_cell(previous_food.x,
+                  previous_food.y,
+                  LCD_BLACK);
+
+    // Draw the current food.
+    snake_position_t food = snake_get_food();
+
+    lcd_draw_cell(food.x,
+                  food.y,
+                  LCD_RED);
+
+    previous_food = food;
+
+    // Draw the updated snake.
+    int length = snake_get_length();
+
+    for (int i = 0; i < length; i++) {
+        snake_position_t segment = snake_get_segment(i);
+
+        previous_body[i] = segment;
+
+        lcd_draw_cell(segment.x,
+                      segment.y,
+                      i == length - 1 ?
+                      LCD_YELLOW : LCD_GREEN);
+    }
+
+    previous_length = length;
+}
+
+void lcd_complete_wall_game_test_update(void)
+{
+    static int demo_state = 0;
+    static absolute_time_t start_time;
+
+    switch (demo_state) {
+        case 0:
+            lcd_start_screen_test_update();
+            start_time = make_timeout_time_ms(3000);
+            demo_state = 1;
+            break;
+
+        case 1:
+            if (time_reached(start_time)) {
+                demo_state = 2;
+            }
+            break;
+
+        case 2:
+            lcd_snake_wall_collision_test_update();
+
+            if (game_state == GAME_OVER) {
+                demo_state = 3;
+            }
+            break;
+
+        case 3:
+            lcd_game_over_screen_test();
+            demo_state = 4;
+            break;
+
+        case 4:
+            // Keep game-over screen displayed.
+            break;
+    }
+}

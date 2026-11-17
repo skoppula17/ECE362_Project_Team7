@@ -12,5 +12,7 @@ void lcd_snake_full_gameplay_test_update(void);
 void lcd_snake_final_collision_test_update(void);
 void lcd_start_screen_test_update(void);
 void lcd_complete_game_test_update(void);
+void lcd_snake_wall_collision_test_update(void);
+void lcd_complete_wall_game_test_update(void);
 
 #endif

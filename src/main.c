@@ -87,7 +87,8 @@ int main(void)
             //lcd_start_screen_test_update();
             // Default demo: one buzz per food, three buzzes on final collision.
             // lcd_fill_rect() services audio while drawing the game-over screen.
-            lcd_complete_game_test_update();
+            // lcd_complete_game_test_update(); // score 3
+            lcd_complete_wall_game_test_update(); // score 5
         #else
             // The future joystick driver supplies these inputs each loop.
             // Until then, centered stays false and the start screen waits.
