@@ -5,9 +5,14 @@
 #include <stdio.h>
 #include "eeprom.h"
 #include "uart.h"
+#include "lcd.h"
 
 #ifndef AUDIO_TEST_MODE
 #define AUDIO_TEST_MODE 0
+#endif
+
+#ifndef LCD_TEST_MODE
+#define LCD_TEST_MODE 1
 #endif
 
 game_state_t game_state = GAME_WAITING;
@@ -29,6 +34,7 @@ const int SPI_7SEG_TX = 19; // Replace with your TX pin number for the 7-segment
 
 #if AUDIO_TEST_MODE
 #define AUDIO_TEST_PAUSE_MS 1000u
+
 
 typedef enum {
     AUDIO_TEST_START,
@@ -71,12 +77,44 @@ static void audio_test_update(void)
 }
 #endif
 
+#if LCD_TEST_MODE
+
+static void lcd_test_update(void)
+{
+    static bool test_drawn = false;
+
+    if (!test_drawn) {
+        test_drawn = true;
+
+        // Black background
+        lcd_fill_screen(LCD_BLACK);
+
+        // Snake body
+        lcd_draw_cell(10, 10, LCD_GREEN);
+        lcd_draw_cell(11, 10, LCD_GREEN);
+        lcd_draw_cell(12, 10, LCD_GREEN);
+        lcd_draw_cell(13, 10, LCD_GREEN);
+
+        // Snake head
+        lcd_draw_cell(14, 10, LCD_YELLOW);
+
+        // Food
+        lcd_draw_cell(18, 15, LCD_RED);
+    }
+}
+
+#endif
+
 int main(void)
 {
     audio_init();
     // TODO: Joystick initialization
     // TODO: TFT initialization (
     // TODO: PIO score display initialization
+
+    #if LCD_TEST_MODE
+        lcd_init();
+    #endif
 
     while (true) {
         // TODO: Joystick update
@@ -97,6 +135,10 @@ int main(void)
         }
 
         audio_update();
+
+        #if LCD_TEST_MODE
+            lcd_test_update();
+        #endif
 
         // TODO: TFT rendering
         // TODO: PIO score display update
