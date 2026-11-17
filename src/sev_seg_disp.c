@@ -27,6 +27,7 @@ uint16_t __attribute__((aligned(16))) msg[8] = {
 //font uses the table in the font.S file
 extern char font[]; // Font mapping for 7-segment display
 extern const int SPI_7SEG_SCK; extern const int SPI_7SEG_CSn; extern const int SPI_7SEG_TX;
+static int index = 0; // Current index in the message buffer
 //these are being pulled from main
 extern uint32_t game_score; //current/updating score
 extern uint32_t high_score; //high score
@@ -65,6 +66,16 @@ void display_init_spi() {
 
     //set up spi format
     spi_set_format(spi1, 16, 0, 0, SPI_MSB_FIRST);  
+}
+
+void display_print() {
+    // fill in    
+
+    //write to SPI
+    spi_write16_blocking(spi0, &msg[index], 1);
+
+    //update index of msg
+    index = (index + 1) % 8;
 }
 
 void display_init_dma() {

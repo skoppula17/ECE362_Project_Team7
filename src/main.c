@@ -85,6 +85,9 @@ int main(void)
     // TODO: Joystick initialization
     // TODO: TFT initialization (
     // TODO: PIO score display initialization
+    stdio_init_all();
+    display_init_spi();
+    display_init_dma();
 
     #if LCD_TEST_MODE
         lcd_init();
@@ -130,8 +133,27 @@ int main(void)
 
         // TODO: TFT rendering
         // TODO: PIO score display update
+        prepare_scores();
+        display_print();
+        if ((game_state == GAME_OVER) & (game_score >= high_score))
+        {
+            high_score = game_score;
+        }
         tight_loop_contents();
     }
+
+    init_uart();
+     // You will construct your own main function.
+    init_i2c();
+
+    char hs_string[4] = {0}; //4 bc null terminator
+    snprintf(hs_string, 4, "%d", high_score);
+
+    eeprom_write(0x20, hs_string, 4);
+    char data[33] = {0}; //was getting junk, changed to 33 so that there was space for null terminator and initialized to 0 for gernal safety
+    eeprom_read(0x20, data, 32);
+
+    printf("Data read from EEPROM: %s\n", data);
 }
 
 
@@ -153,6 +175,10 @@ int main(void){
         //game_score++;
     //Want to code it so that the highscore only updates after death/completion of round
     //if die/game over
+    if ((game_state == GAME_OVER) & (game_score >= high_score))
+    {
+        high_score = game_score;
+    }
     //check condition 
     // if (game_score >= high_score){
     //     high_score = game_score

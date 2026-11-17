@@ -4,5 +4,6 @@
 void display_init_spi(void);
 void display_init_dma(void);
 void prepare_scores(void);
+void display_print(void);
 
 #endif
