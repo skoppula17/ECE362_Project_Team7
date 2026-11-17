@@ -9,10 +9,6 @@
 #include "lcd_tests.h"
 #include "snake.h"
 
-#ifndef AUDIO_TEST_MODE
-#define AUDIO_TEST_MODE 0
-#endif
-
 #ifndef LCD_TEST_MODE
 #define LCD_TEST_MODE 1
 #endif
@@ -33,51 +29,6 @@ const int SPI_7SEG_SCK = 10; // Replace with your SCK pin number for the 7-segme
 const int SPI_7SEG_CSn = 13; // Replace with your CSn pin number for the 7-segment display
 const int SPI_7SEG_TX = 11; // Replace with your TX pin number for the 7-segment display
 //end of section
-
-#if AUDIO_TEST_MODE
-#define AUDIO_TEST_PAUSE_MS 1000u
-
-
-typedef enum {
-    AUDIO_TEST_START,
-    AUDIO_TEST_WAIT_FOOD,
-    AUDIO_TEST_PAUSE,
-    AUDIO_TEST_WAIT_GAME_OVER,
-    AUDIO_TEST_DONE
-} audio_test_state_t;
-
-static void audio_test_update(void)
-{
-    static audio_test_state_t state = AUDIO_TEST_START;
-    static absolute_time_t pause_deadline;
-
-    switch (state) {
-    case AUDIO_TEST_START:
-        audio_play_food();
-        state = AUDIO_TEST_WAIT_FOOD;
-        break;
-    case AUDIO_TEST_WAIT_FOOD:
-        if (!audio_is_busy()) {
-            pause_deadline = make_timeout_time_ms(AUDIO_TEST_PAUSE_MS);
-            state = AUDIO_TEST_PAUSE;
-        }
-        break;
-    case AUDIO_TEST_PAUSE:
-        if (time_reached(pause_deadline)) {
-            audio_play_game_over();
-            state = AUDIO_TEST_WAIT_GAME_OVER;
-        }
-        break;
-    case AUDIO_TEST_WAIT_GAME_OVER:
-        if (!audio_is_busy()) {
-            state = AUDIO_TEST_DONE;
-        }
-        break;
-    case AUDIO_TEST_DONE:
-        break;
-    }
-}
-#endif
 
 // The scripted LCD demo uses snake.c, which raises these events on food
 // and collision. Consume each event once; game over takes priority.
@@ -109,13 +60,9 @@ int main(void)
     while (true) {
         // TODO: Joystick update
 
-#if AUDIO_TEST_MODE
-        audio_test_update();
-#endif
-
         audio_update();
 
-        #if LCD_TEST_MODE && !AUDIO_TEST_MODE
+        #if LCD_TEST_MODE
             // lcd_test_update();                // Static graphics
             // lcd_movement_test_update();       // Straight movement
             // lcd_gameplay_test_update();       // Food and wall collisions
@@ -129,7 +76,7 @@ int main(void)
             // Default demo: one buzz per food, three buzzes on final collision.
             // lcd_fill_rect() services audio while drawing the game-over screen.
             lcd_complete_game_test_update();
-        #elif !AUDIO_TEST_MODE
+        #else
             // The joystick driver controls GAME_WAITING/GAME_RUNNING and direction.
             snake_update();
         #endif
